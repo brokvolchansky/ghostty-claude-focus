@@ -1,7 +1,7 @@
 {
   "name": "ghostty-claude-focus",
   "description": "macOS notifications for Claude Code that focus the exact Ghostty tab (and tmux pane) which produced them.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "keywords": ["claude-code", "ghostty", "tmux", "notifications", "macos", "hooks"],
   "license": "MIT"
 }
