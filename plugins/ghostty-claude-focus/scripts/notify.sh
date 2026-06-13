@@ -1,5 +1,6 @@
 #!/bin/bash
 # ghostty-claude-focus — notifier via terminal-notifier.
+# https://github.com/brokvolchansky/ghostty-claude-focus
 # Usage: notify.sh <event-name>
 # Reads a Claude Code hook JSON payload from stdin, parses it with jq, and
 # dispatches a macOS notification. Clicking the notification focuses the exact
