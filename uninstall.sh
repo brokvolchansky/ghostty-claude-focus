@@ -12,7 +12,7 @@ SETTINGS="$CLAUDE_DIR/settings.json"
 
 echo "== ghostty-claude-focus uninstaller =="
 
-command -v jq >/dev/null 2>&1 || { echo "jq не найден → brew install jq"; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "jq not found → brew install jq"; exit 1; }
 
 if [ -f "$SETTINGS" ]; then
   cp "$SETTINGS" "$SETTINGS.bak.$(date +%Y%m%d-%H%M%S)"
@@ -42,4 +42,4 @@ done
 rm -rf "${TMPDIR:-/tmp}/claude-focus" 2>/dev/null || true
 
 echo
-echo "Готово. Разрешение на автоматизацию Ghostty осталось — убрать вручную в System Settings → Privacy → Automation."
+echo "Done. The Ghostty automation grant is left in place — remove it manually in System Settings → Privacy → Automation."

@@ -16,7 +16,7 @@ SETTINGS="$CLAUDE_DIR/settings.json"
 
 echo "== ghostty-claude-focus installer =="
 
-command -v jq >/dev/null 2>&1 || { echo "jq не найден → brew install jq"; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "jq not found → brew install jq"; exit 1; }
 
 mkdir -p "$HOOKS_DIR"
 
@@ -53,4 +53,4 @@ echo
 bash "$HOOKS_DIR/preflight.sh" || true
 
 echo
-echo "Готово. Перезапусти Claude Code (или подтверди изменение в /hooks), чтобы хуки подхватились."
+echo "Done. Restart Claude Code (or approve the change in /hooks) so the hooks take effect."

@@ -97,9 +97,9 @@ activate_cmd="$SCRIPT_DIR/focus-session.sh '$session_full' '$term_pid'"
 case "$event" in
   Stop)
     "$TN" \
-      -title "Claude Code — готов" \
+      -title "Claude Code — ready" \
       -subtitle "$project" \
-      -message "Сессия ${session:-?} ждёт команду" \
+      -message "Session ${session:-?} is waiting" \
       -sound Glass \
       -group "claude-stop-$session" \
       -execute "$activate_cmd" \
@@ -115,9 +115,9 @@ case "$event" in
       // .tool_input.path
       // ""' 2>/dev/null | head -c 200)
     "$TN" \
-      -title "Claude Code — нужно разрешение" \
+      -title "Claude Code — permission needed" \
       -subtitle "$project — $tool" \
-      -message "${detail:-нет деталей запроса}" \
+      -message "${detail:-no request details}" \
       -sound Ping \
       -group "claude-perm-$session" \
       -execute "$activate_cmd" \
@@ -132,7 +132,7 @@ case "$event" in
     "$TN" \
       -title "Claude Code" \
       -subtitle "$project — $ntype" \
-      -message "${msg:-без текста}" \
+      -message "${msg:-no message}" \
       -sound Glass \
       -group "claude-notif-$session" \
       -execute "$activate_cmd" \
