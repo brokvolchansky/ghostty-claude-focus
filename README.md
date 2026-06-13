@@ -31,8 +31,8 @@ This tool is **Ghostty-specific**: the focus logic relies on Ghostty's scripting
 ### Option A — Claude Code plugin (recommended)
 
 ```
-/plugin marketplace add DimensionSync/ghostty-claude-focus
-/plugin install ghostty-claude-focus@dimensionsync
+/plugin marketplace add brokvolchansky/ghostty-claude-focus
+/plugin install ghostty-claude-focus@brokvolchansky
 ```
 
 Hooks register automatically. Then run the one-time permission step:
@@ -41,12 +41,12 @@ Hooks register automatically. Then run the one-time permission step:
 ~/.claude/... # see "One-time Automation grant" below
 ```
 
-> Replace `DimensionSync/ghostty-claude-focus` with your own `owner/repo` once you push it to GitHub.
+> Replace `brokvolchansky/ghostty-claude-focus` with your own `owner/repo` once you push it to GitHub.
 
 ### Option B — standalone installer
 
 ```
-git clone https://github.com/DimensionSync/ghostty-claude-focus.git
+git clone https://github.com/brokvolchansky/ghostty-claude-focus.git
 cd ghostty-claude-focus
 ./install.sh
 ```
@@ -87,7 +87,7 @@ Standalone:
 ./uninstall.sh
 ```
 
-Plugin: `/plugin uninstall ghostty-claude-focus@dimensionsync`. The Ghostty Automation grant is left in place — remove it manually in System Settings → Privacy & Security → Automation.
+Plugin: `/plugin uninstall ghostty-claude-focus@brokvolchansky`. The Ghostty Automation grant is left in place — remove it manually in System Settings → Privacy & Security → Automation.
 
 ## License
 
