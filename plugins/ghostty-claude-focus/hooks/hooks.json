@@ -1,0 +1,30 @@
+{
+  "Notification": [
+    {
+      "hooks": [
+        { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh Notification" }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh Stop" }
+      ]
+    }
+  ],
+  "PermissionRequest": [
+    {
+      "hooks": [
+        { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh PermissionRequest" }
+      ]
+    }
+  ],
+  "SessionStart": [
+    {
+      "hooks": [
+        { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/session-register.sh" }
+      ]
+    }
+  ]
+}

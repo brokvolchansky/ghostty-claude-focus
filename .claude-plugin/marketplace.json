@@ -1,0 +1,13 @@
+{
+  "name": "dimensionsync",
+  "owner": {
+    "name": "DimensionSync"
+  },
+  "plugins": [
+    {
+      "name": "ghostty-claude-focus",
+      "source": "./plugins/ghostty-claude-focus",
+      "description": "macOS notifications for Claude Code that focus the exact Ghostty tab (and tmux pane) which produced them."
+    }
+  ]
+}
