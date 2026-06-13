@@ -1,0 +1,37 @@
+name: release
+
+# Publishes a GitHub Release whenever the plugin's version changes on main.
+# The version in plugin.json is the source of truth (auto-bumped by the
+# pre-commit hook on code changes). No build step — just tag + release notes.
+# Run manually (workflow_dispatch) once to mint a release for the current version.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/ghostty-claude-focus/.claude-plugin/plugin.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # required: GITHUB_TOKEN is read-only by default; needed to create the tag + release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read plugin version
+        id: ver
+        run: echo "version=$(jq -r .version plugins/ghostty-claude-focus/.claude-plugin/plugin.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Create release if the tag does not exist yet
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ steps.ver.outputs.version }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists — skipping."
+          else
+            gh release create "$tag" --title "$tag" --generate-notes
+          fi
