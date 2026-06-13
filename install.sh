@@ -40,10 +40,10 @@ jq --arg hd "$HOOKS_DIR" '
   def addhook($event; $cmd):
     .hooks[$event] = ( keepforeign(.hooks[$event]) + [ { "hooks": [ { "type":"command", "command":$cmd } ] } ] );
   (.hooks //= {})
-  | addhook("Notification";      $hd + "/notify.sh Notification")
-  | addhook("Stop";              $hd + "/notify.sh Stop")
-  | addhook("PermissionRequest"; $hd + "/notify.sh PermissionRequest")
-  | addhook("SessionStart";      $hd + "/session-register.sh")
+  | addhook("Notification";      "bash " + $hd + "/notify.sh Notification")
+  | addhook("Stop";              "bash " + $hd + "/notify.sh Stop")
+  | addhook("PermissionRequest"; "bash " + $hd + "/notify.sh PermissionRequest")
+  | addhook("SessionStart";      "bash " + $hd + "/session-register.sh")
 ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
 
 echo "  merged hooks into $SETTINGS (backup saved alongside)"

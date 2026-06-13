@@ -92,7 +92,7 @@ term_pid=$(find_terminal_pid)
 # Click target: focus the exact Ghostty tab (+ tmux pane) that produced this
 # notification, via the session→tab registry. Falls back to activating the GUI
 # terminal process by PID when no UUID was captured for this session.
-activate_cmd="$SCRIPT_DIR/focus-session.sh '$session_full' '$term_pid'"
+activate_cmd="bash $SCRIPT_DIR/focus-session.sh '$session_full' '$term_pid'"
 
 case "$event" in
   Stop)
