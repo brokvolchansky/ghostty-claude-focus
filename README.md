@@ -86,6 +86,14 @@ Standalone:
 
 Plugin: `/plugin uninstall ghostty-claude-focus@brokvolchansky`. The Ghostty Automation grant is left in place — remove it manually in System Settings → Privacy & Security → Automation.
 
+## Development
+
+The plugin version in `plugin.json` is Claude Code's update key. A `pre-commit` hook in `.githooks/` auto-bumps the patch version whenever a commit touches `scripts/` or `hooks/`, so code changes ship as new versions without manual edits (docs-only commits don't bump). Enable it once after cloning:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

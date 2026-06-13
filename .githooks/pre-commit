@@ -1,0 +1,36 @@
+#!/bin/sh
+# Auto-bump the plugin's patch version when its runtime code changes.
+#
+# The version in plugin.json is Claude Code's cache key: users only receive an
+# update when it changes. This hook bumps the patch automatically whenever a
+# commit touches the plugin's scripts/ or hooks/, and folds the bump into the
+# same commit — so a code change always ships as a new version, hands-free.
+#
+# Pure-docs commits (README, LICENSE, etc.) do NOT bump the version.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+
+set -u
+manifest="plugins/ghostty-claude-focus/.claude-plugin/plugin.json"
+
+# Only bump when staged changes include plugin runtime code.
+changed=$(git diff --cached --name-only | grep -E '^plugins/ghostty-claude-focus/(scripts|hooks)/' || true)
+[ -z "$changed" ] && exit 0
+
+command -v jq >/dev/null 2>&1 || { echo "pre-commit: jq not found, skipping version bump" >&2; exit 0; }
+
+cur=$(jq -r '.version // "0.0.0"' "$manifest")
+case "$cur" in
+  [0-9]*.[0-9]*.[0-9]*) ;;
+  *) echo "pre-commit: version '$cur' is not x.y.z, skipping bump" >&2; exit 0 ;;
+esac
+
+major=$(printf '%s' "$cur" | cut -d. -f1)
+minor=$(printf '%s' "$cur" | cut -d. -f2)
+patch=$(printf '%s' "$cur" | cut -d. -f3)
+new="$major.$minor.$((patch + 1))"
+
+jq --arg v "$new" '.version = $v' "$manifest" > "$manifest.tmp" && mv "$manifest.tmp" "$manifest"
+git add "$manifest"
+echo "pre-commit: plugin version bumped $cur → $new"
+exit 0
