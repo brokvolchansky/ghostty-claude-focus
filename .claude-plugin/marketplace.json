@@ -1,5 +1,6 @@
 {
   "name": "brokvolchansky",
+  "description": "macOS notifications for Claude Code that focus the Ghostty tab + tmux pane behind each alert",
   "owner": {
     "name": "brokvolchansky"
   },
