@@ -39,7 +39,7 @@ for s in notify.sh session-register.sh focus-session.sh preflight.sh; do
 done
 
 # Optional: clear the runtime registry.
-rm -rf "${TMPDIR:-/tmp}/claude-focus" 2>/dev/null || true
+rm -rf "$HOME/.cache/ghostty-claude-focus" 2>/dev/null || true
 
 echo
 echo "Done. The Ghostty automation grant is left in place — remove it manually in System Settings → Privacy → Automation."

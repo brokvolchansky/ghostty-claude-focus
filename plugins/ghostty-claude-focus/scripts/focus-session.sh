@@ -13,7 +13,9 @@ set -u
 sid="${1:-}"
 fallback_pid="${2:-}"
 
-dir="${TMPDIR:-/tmp}/claude-focus"
+# Same path as session-register.sh. $HOME is the anchor: it is identical across
+# the session process and this terminal-notifier-spawned process, unlike $TMPDIR.
+dir="$HOME/.cache/ghostty-claude-focus"
 
 do_fallback() {
   [ -n "$fallback_pid" ] || return 0

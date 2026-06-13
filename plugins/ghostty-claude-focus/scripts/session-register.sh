@@ -2,7 +2,11 @@
 # ghostty-claude-focus — session → Ghostty tab registry.
 # Hook: SessionStart. Reads JSON payload from stdin.
 #
-# Captures, keyed by full session_id (in $TMPDIR/claude-focus or /tmp):
+# Captures, keyed by full session_id, under $HOME/.cache/ghostty-claude-focus.
+# $HOME is the anchor because the two scripts run in different process contexts
+# (this one inside the Claude Code session; focus-session.sh from terminal-notifier)
+# and $HOME is the only path component guaranteed identical across both — unlike
+# $TMPDIR, which differs per process on macOS, or /tmp, which is world-readable:
 #   GHOSTTY_ID  — UUID of the Ghostty terminal hosting this session's tab,
 #                 taken as the focused terminal of the selected tab of the
 #                 front Ghostty window at session start. This is the only
@@ -19,7 +23,7 @@ input=$(cat)
 sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
 [ -z "$sid" ] && exit 0
 
-dir="${TMPDIR:-/tmp}/claude-focus"
+dir="$HOME/.cache/ghostty-claude-focus"
 mkdir -p "$dir" 2>/dev/null
 
 # UUID of the Ghostty tab focused at session start.
