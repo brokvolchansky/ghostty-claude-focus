@@ -6,14 +6,14 @@ When you run several Claude Code sessions across multiple Ghostty tabs, a "Claud
 
 ## How it works
 
-Ghostty's AppleScript dictionary exposes a stable per-tab UUID but **not** a TTY, and the working directory is often shared across tabs — so neither can reliably identify a tab. The approach is a two-layer registry:
+Ghostty's AppleScript dictionary exposes a stable per-tab UUID but **not** a TTY or PID, and there is no inheritable surface-id env var ([ghostty-org/ghostty#11592](https://github.com/ghostty-org/ghostty/issues/11592), [discussion #10603](https://github.com/ghostty-org/ghostty/discussions/10603)) — so a process cannot directly tell which tab it runs in. The working directory is often shared across tabs, and the frontmost tab is just whatever the user happens to be looking at. The approach is a two-layer registry that pins the tab by a self-tag:
 
-1. **`SessionStart` hook** records, per Claude `session_id`, the UUID of the hosting Ghostty tab plus (if inside tmux) the tmux `pane_id`.
+1. **`SessionStart` hook** writes a unique title marker into its *own* surface's controlling tty (the attached client's tty inside tmux, otherwise `/dev/tty`), then asks Ghostty for the terminal whose title carries that marker and records its UUID — keyed by Claude `session_id`, with the tmux `pane_id` when inside tmux. Because the marker travels down the session's own tty, the captured tab is exact no matter which tab is frontmost or how tabs are later reordered; the original title is restored at once.
 2. **On notification click**, the handler reads that record, runs `tmux select-pane` to switch to the originating pane (when several sessions share one tab via splits), then uses Ghostty's `focus` command to raise the tab by UUID.
 
 If a session has no record (e.g. it predates installation), the click falls back to simply activating the terminal app.
 
-A teammate filter suppresses notifications from Claude Code sub-agent/teammate processes, so only the lead session notifies.
+A teammate filter runs in both hooks: it suppresses notifications from Claude Code sub-agent/teammate processes (so only the lead session notifies) and keeps those sessions out of the registry.
 
 ## Requirements
 
@@ -73,7 +73,7 @@ Let a Claude Code session reach a `Stop`, switch to another tab, then click the 
 ## Notes & limitations
 
 - **Sessions started before installation** are not in the registry; clicking their notifications falls back to activating the app (no tab switch). They register on the next `SessionStart` — e.g. after `/compact`, `/clear`, `/resume`, or a restart.
-- The registry lives in `${TMPDIR}/claude-focus` and clears on reboot; it repopulates as sessions start.
+- The registry lives in `$HOME/.cache/ghostty-claude-focus`. It does not clear on reboot, so each `SessionStart` also prunes records whose Ghostty surface no longer exists.
 - Notification strings are currently in Russian; edit `scripts/notify.sh` to change them.
 
 ## Uninstall
