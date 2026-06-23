@@ -1,7 +1,7 @@
 {
   "name": "ghostty-claude-focus",
   "description": "macOS notifications for Claude Code that focus the exact Ghostty tab (and tmux pane) which produced them.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": {
     "name": "Anton Brok-Volchansky"
   },

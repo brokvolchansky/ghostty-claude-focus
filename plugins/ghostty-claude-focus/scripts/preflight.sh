@@ -48,6 +48,17 @@ fi
 # 5. tmux (optional)
 if command -v tmux >/dev/null 2>&1; then ok "tmux: $(tmux -V) (optional, enables split-pane routing)"; else warn "tmux not found — that's fine; multi-pane routing will be unavailable"; fi
 
+# 6. preferredNotifChannel — Claude Code's built-in notifications must be off, or
+# every alert shows twice (and teammate sessions, which our hook suppresses, still
+# notify via the built-in path). install.sh sets this; plugin installs need it by hand.
+SETTINGS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+chan=$(jq -r '.preferredNotifChannel // "auto"' "$SETTINGS" 2>/dev/null)
+if [ "$chan" = "notifications_disabled" ]; then
+  ok "preferredNotifChannel = notifications_disabled (built-in notifications off)"
+else
+  warn "preferredNotifChannel = \"$chan\" — Claude Code's built-in notifications will duplicate this plugin's. Set \"preferredNotifChannel\": \"notifications_disabled\" in $SETTINGS"
+fi
+
 echo
 if [ "$fail" -ne 0 ]; then
   err "Some dependencies are missing. Install them and run preflight again."

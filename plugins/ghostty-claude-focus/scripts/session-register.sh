@@ -16,23 +16,24 @@
 # ─────────────────────────────────────────────────────
 # Ghostty (<=1.3.1) gives a process no way to learn its own surface: the
 # AppleScript `terminal` class exposes no pid/tty (ghostty-org/ghostty#11592),
-# and there is no inheritable surface-id env var yet (discussion #10603; the
-# GHOSTTY_SURFACE_ID / present-surface work is unreleased). Capturing whatever
-# tab is FRONTMOST (`focused terminal of selected tab of front window`) records
-# the WRONG tab whenever the active tab differs from this session's tab — the
-# user opened/switched a tab, or the session started in a background tab. That
-# was the wrong-tab-focus bug.
-#
-# Instead we tag OUR surface with a unique title marker written into the
-# surface's own controlling tty, then ask Ghostty for the terminal whose name
-# carries that marker. The marker travels down our own tty, so it can only land
-# on our surface — an exact match, independent of which tab is frontmost:
+# and there is no inheritable surface-id env var yet (discussion #10603). Capturing
+# whatever tab is FRONTMOST records the WRONG tab whenever the active tab differs
+# from this session's tab. Instead we tag OUR surface with a unique title marker
+# written into the surface's own controlling tty, then ask Ghostty for the
+# terminal whose name carries that marker — an exact match, frontmost-independent:
 #   - bare shell : our controlling tty IS the surface pty   → write to /dev/tty
 #   - inside tmux: our tty is the pane pty, NOT the surface; the surface pty is
 #                  the attached client's tty                → write to client_tty
-# The clobbered title is restored right after (inside tmux from the expanded
-# set-titles-string; a bare shell's next prompt repaints it via shell
-# integration). A short retry loop covers the title-churn race.
+# The clobbered title is restored right after.
+#
+# Not hanging Ghostty
+# ───────────────────
+# Ghostty serves AppleScript on one thread, so concurrent osascript calls from
+# several sessions pile up and surface the macOS "waiting for Ghostty" dialog.
+# Two guards: a shared mkdir lock serialises all Ghostty access to one process at
+# a time, and every osascript carries `with timeout` so a busy Ghostty fails the
+# call fast instead of hanging this (synchronous) hook. The registry prune only
+# runs past a size threshold, to avoid an enumerate-all call on every start.
 #
 # focus-session.sh consumes GHOSTTY_ID on notification click.
 
@@ -72,6 +73,30 @@ sid=$(printf '%s' "$input" | jq -r '.session_id // ""' 2>/dev/null)
 dir="$HOME/.cache/ghostty-claude-focus"
 mkdir -p "$dir" 2>/dev/null
 
+# ─── Ghostty access guards ──────────────────────────────────────────
+# Serialise all Ghostty AppleScript via an atomic mkdir lock in the shared
+# registry dir (same $HOME anchor focus-session.sh uses). Bounded wait, because
+# SessionStart is synchronous and must not stall Claude's startup; a lock older
+# than 15s is assumed dead and stolen.
+lock="$dir/.lock"
+gcf_lock() {
+  local n=0 m
+  while ! mkdir "$lock" 2>/dev/null; do
+    m=$(stat -f %m "$lock" 2>/dev/null)
+    if [ -n "$m" ] && [ "$(( $(date +%s) - m ))" -ge 15 ]; then
+      rmdir "$lock" 2>/dev/null; continue
+    fi
+    n=$((n + 1)); [ "$n" -ge 50 ] && return 1   # ~5s elapsed → give up, proceed
+    sleep 0.1
+  done
+  return 0
+}
+gcf_unlock() { rmdir "$lock" 2>/dev/null; }
+
+# Every Ghostty osascript goes through here: a hard timeout turns a hung/busy
+# Ghostty into a fast failure instead of a stalled hook.
+gosa() { osascript -e 'with timeout of 5 seconds' "$@" -e 'end timeout' 2>/dev/null; }
+
 in_tmux=0
 pane=""
 if [ -n "${TMUX:-}" ]; then
@@ -79,17 +104,17 @@ if [ -n "${TMUX:-}" ]; then
   pane=$(tmux display-message -p '#{pane_id}' 2>/dev/null)
 fi
 
-# Find the tty that maps to OUR Ghostty surface.
+# Find the tty that maps to OUR Ghostty surface (no Ghostty access — pre-lock).
 surface_tty=""
 if [ "$in_tmux" = "1" ]; then
-  # The surface pty is the tty of the client attached to our tmux session,
-  # not our pane pty. (Multi-client attach is rare; take the first.)
   msess=$(tmux display-message -p '#{session_name}' 2>/dev/null)
   surface_tty=$(tmux list-clients -t "$msess" -F '#{client_tty}' 2>/dev/null | head -1)
 else
   surface_tty=$(tty 2>/dev/null)
   case "$surface_tty" in /dev/*) ;; *) surface_tty="" ;; esac
 fi
+
+gcf_lock   # serialise Ghostty access; proceeds anyway after ~5s if not acquired
 
 # Tag our surface with a unique marker and read back its UUID by that marker.
 gid=""
@@ -98,7 +123,7 @@ if [ -n "$surface_tty" ] && [ -w "$surface_tty" ]; then
   i=0
   while [ "$i" -lt 10 ]; do
     printf '\033]2;%s\007' "$marker" > "$surface_tty" 2>/dev/null
-    gid=$(osascript -e "tell application \"Ghostty\" to get id of (first terminal whose name contains \"$marker\")" 2>/dev/null)
+    gid=$(gosa -e "tell application \"Ghostty\" to get id of (first terminal whose name contains \"$marker\")")
     [ -n "$gid" ] && break
     i=$((i + 1))
   done
@@ -117,7 +142,7 @@ fi
 # a surface (no writable tty, AppleScript unavailable), fall back to the
 # frontmost-tab capture the previous version used.
 if [ -z "$gid" ]; then
-  gid=$(osascript -e 'tell application "Ghostty" to get id of focused terminal of selected tab of front window' 2>/dev/null)
+  gid=$(gosa -e 'tell application "Ghostty" to get id of focused terminal of selected tab of front window')
 fi
 
 {
@@ -126,24 +151,29 @@ fi
   printf 'TMUX_PANE=%s\n' "$pane"
 } > "$dir/$sid" 2>/dev/null
 
-# ─── Prune dead records ─────────────────────────────────────────────
+# ─── Prune dead records (throttled) ─────────────────────────────────
 # The registry lives under $HOME/.cache (persistent — it does NOT clear on
-# reboot), and every session that ever ran leaves a file, so it grows without
-# bound. Drop records whose surface no longer exists. We only delete when we
-# could enumerate live surfaces (non-empty list) and only records carrying a
-# non-empty GHOSTTY_ID that is absent from it — so our just-written record (a
-# live surface) and any fallback records with no UUID are preserved.
-live=$(osascript -e 'tell application "Ghostty" to get id of every terminal' 2>/dev/null)
-if [ -n "$live" ]; then
-  for f in "$dir"/*; do
-    [ -f "$f" ] || continue
-    g=$(sed -n 's/^GHOSTTY_ID=//p' "$f")
-    [ -z "$g" ] && continue
-    case "$live" in
-      *"$g"*) ;;
-      *) rm -f "$f" 2>/dev/null ;;
-    esac
-  done
+# reboot), so it grows. Drop records whose surface is gone, but only once the
+# directory has grown past a threshold, so the enumerate-all-terminals call does
+# not run on every single start. We only delete when we could enumerate live
+# surfaces and only records with a non-empty GHOSTTY_ID absent from that list, so
+# our just-written record and any UUID-less fallback records are preserved.
+n=0
+for f in "$dir"/*; do [ -f "$f" ] && n=$((n + 1)); done
+if [ "$n" -gt 40 ]; then
+  live=$(gosa -e 'tell application "Ghostty" to get id of every terminal')
+  if [ -n "$live" ]; then
+    for f in "$dir"/*; do
+      [ -f "$f" ] || continue
+      g=$(sed -n 's/^GHOSTTY_ID=//p' "$f")
+      [ -z "$g" ] && continue
+      case "$live" in
+        *"$g"*) ;;
+        *) rm -f "$f" 2>/dev/null ;;
+      esac
+    done
+  fi
 fi
 
+gcf_unlock
 exit 0

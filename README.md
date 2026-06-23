@@ -37,6 +37,14 @@ This tool is **Ghostty-specific**: the focus logic relies on Ghostty's scripting
 
 Hooks register automatically once you **restart Claude Code**. Then complete the one-time Automation grant — see [One-time Automation grant](#one-time-automation-grant-tcc) below.
 
+**Also disable Claude Code's built-in notifications**, or every alert shows twice — the built-in ones duplicate this plugin's and also fire for teammate sessions (which this plugin suppresses on purpose). Add to `~/.claude/settings.json`:
+
+```json
+{ "preferredNotifChannel": "notifications_disabled" }
+```
+
+A `/plugin` install can't edit your settings, so add it by hand; the standalone `install.sh` sets it automatically, and `preflight.sh` warns if it's missing.
+
 > Replace `brokvolchansky/ghostty-claude-focus` with your own `owner/repo` if you fork it.
 
 ### Option B — standalone installer

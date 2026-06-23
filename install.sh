@@ -44,9 +44,15 @@ jq --arg hd "$HOOKS_DIR" '
   | addhook("Stop";              "bash " + $hd + "/notify.sh Stop")
   | addhook("PermissionRequest"; "bash " + $hd + "/notify.sh PermissionRequest")
   | addhook("SessionStart";      "bash " + $hd + "/session-register.sh")
+  # Claude Code'\''s built-in notifications duplicate ours and also fire for
+  # teammate sessions (which our hook suppresses on purpose). Turn them off so
+  # this plugin is the only channel — but never override a channel the user
+  # chose themselves; only flip the default ("auto"/unset).
+  | (if (.preferredNotifChannel // "auto") == "auto"
+     then .preferredNotifChannel = "notifications_disabled" else . end)
 ' "$SETTINGS" > "$tmp" && mv "$tmp" "$SETTINGS"
 
-echo "  merged hooks into $SETTINGS (backup saved alongside)"
+echo "  merged hooks + notification channel into $SETTINGS (backup saved alongside)"
 echo
 
 # 3. Preflight (deps + TCC).
